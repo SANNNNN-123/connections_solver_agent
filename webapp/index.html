@@ -3,40 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connections Puzzle Solver</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Connection Puzzle Solver</title>
+    <style>
+        :root {
+            --primary-color: #3a86ff;
+            --yellow-color: #ffbe0b;
+            --green-color: #38b000;
+            --blue-color: #3a86ff;
+            --purple-color: #8338ec;
+            --error-color: #e63946;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+        
+        section {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        input, textarea, button {
+            padding: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            font-size: 1rem;
+        }
+        
+        textarea {
+            width: 100%;
+            resize: none;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .color-buttons, .response-buttons, .manual-override {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .color-buttons h3, .response-buttons h3, .manual-override h3 {
+            width: 100%;
+        }
+        
+        .color-btn.yellow { background-color: var(--yellow-color); }
+        .color-btn.green { background-color: var(--green-color); }
+        .color-btn.blue { background-color: var(--blue-color); }
+        .color-btn.purple { background-color: var(--purple-color); }
+        
+        .response-btn {
+            background-color: var(--error-color);
+        }
+        
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-row label {
+            font-weight: bold;
+            min-width: 100px;
+        }
+        
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls-row label {
+            margin-left: 15px;
+        }
+        
+        #found-count, #mistake-count {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .terminate-btn {
+            background-color: var(--error-color);
+        }
+        
+        .override-btn {
+            background-color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .input-group, .controls-row, .status-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            input, button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Connections Puzzle Solver</h1>
-        <div id="puzzle-area">
-            <div id="puzzle-instructions">
-                <p>Enter your puzzle words below. Group them into sets of 4 that are connected by a common theme.</p>
+        <h1>Connection Puzzle Solver</h1>
+        
+        <section class="setup-section">
+            <h3>Setup Puzzle</h3>
+            <div class="input-group">
+                <label for="puzzle-file">Puzzle File:</label>
+                <input type="text" id="puzzle-file" placeholder="Enter puzzle file path">
+                <button id="setup-btn">Load Puzzle</button>
             </div>
-            <form id="puzzle-form">
-                <textarea id="puzzle-input" rows="6" placeholder="Enter puzzle words, one per line..."></textarea>
-                <button type="submit">Solve Puzzle</button>
-            </form>
-            <div id="solution-area" style="display:none;">
-                <h2>Solution</h2>
-                <div id="solution-output"></div>
+        </section>
+        
+        <section class="puzzle-section">
+            <h3>Puzzle Words</h3>
+            <textarea id="words-remaining" rows="2" placeholder="Words will appear here after setup..." readonly></textarea>
+            
+            <div class="controls" id="get-next-group">
+                <div class="controls-row">
+                    <button id="next-recommendation" disabled>Get Next Recommendation</button>
+                    <label for="found-count">Found:</label>
+                    <textarea id="found-count" rows="1" cols="3"></textarea>
+                    <label for="mistake-count">Mistakes:</label>
+                    <textarea id="mistake-count" rows="1" cols="3"></textarea>
+                </div>
             </div>
-        </div>
+            
+            <h3>Recommended Group</h3>
+            <textarea id="recommended-group" rows="1" placeholder="Recommended words will appear here..." readonly></textarea>
+            
+            <h3>Connection Reason</h3>
+            <textarea id="connection-reason" rows="2" placeholder="Connection explanation will appear here..." readonly></textarea>
+            
+            <div class="status-row">
+                <label for="puzzle-status-message">Status:</label>
+                <textarea id="puzzle-status-message" rows="1" placeholder="Status updates will appear here..." readonly></textarea>
+                <button id="terminate-btn" class="terminate-btn" disabled>Terminate</button>
+            </div>
+            
+            <div class="status-row">
+                <label for="active-recommender-message">Recommender:</label>
+                <textarea id="active-recommender-message" rows="1" placeholder="Current recommender..." readonly></textarea>
+            </div>
+        </section>
+        
+        <section class="response-section">
+            <div class="color-buttons">
+                <h3>Correct Group Color</h3>
+                <button class="color-btn yellow" response_code="y" disabled>Yellow</button>
+                <button class="color-btn green" response_code="g" disabled>Green</button>
+                <button class="color-btn blue" response_code="b" disabled>Blue</button>
+                <button class="color-btn purple" response_code="p" disabled>Purple</button>
+            </div>
+            
+            <div class="response-buttons">
+                <h3>Puzzle Response</h3>
+                <button class="response-btn" response_code="o" disabled>One-away Error</button>
+                <button class="response-btn" response_code="n" disabled>Not Correct</button>
+            </div>
+            
+            <div class="manual-override">
+                <h3>Manual Controls</h3>
+                <button class="override-btn" id="manual-override-btn" disabled>Manual Override</button>
+                <button class="override-btn" id="confirm-manual-override-btn" disabled>Confirm Override</button>
+                <button class="response-btn" response_code="s" disabled>Switch Recommender</button> 
+            </div>
+        </section>
+        
+        <section class="result-section">
+            <div class="found-groups">
+                <h3>Correct Groups</h3>
+                <textarea id="found-groups" rows="4" placeholder="Correct groups will appear here..." readonly></textarea>
+            </div>
+            
+            <div class="invalid-groups">
+                <h3>Invalid Groups</h3>
+                <textarea id="invalid-groups" rows="4" placeholder="Invalid groups will appear here..." readonly></textarea>
+            </div>
+        </section>
     </div>
+    
     <script>
-        document.getElementById('puzzle-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const input = document.getElementById('puzzle-input').value;
-            document.getElementById('solution-area').style.display = 'block';
-            document.getElementById('solution-output').innerText = 'Solving...';
-            // TODO: Connect to backend API
-            // Example fetch:
-            // const response = await fetch('/api/solve', { method: 'POST', body: JSON.stringify({ words: input.split('\n') }) });
-            // const data = await response.json();
-            // document.getElementById('solution-output').innerText = JSON.stringify(data, null, 2);
-            setTimeout(() => {
-                document.getElementById('solution-output').innerText = 'This is a placeholder. Backend integration needed.';
-            }, 1000);
+        document.getElementById('setup-btn').addEventListener('click', async () => {
+            console.log('Setup button clicked');
+            const puzzleFile = document.getElementById('puzzle-file').value;
+            
+            if (!puzzleFile.trim()) {
+                document.getElementById('puzzle-status-message').value = 'Please enter a puzzle file path';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/setup-puzzle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ setup: puzzleFile })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === "success in getting puzzle words") {
+                    document.getElementById('words-remaining').value = data.puzzle_words.join(', ');
+                    document.getElementById('puzzle-status-message').value = "Puzzle loaded successfully";
+                    
+                    // Enable all buttons except setup-btn and terminate-btn
+                    document.querySelectorAll('button:not(#setup-btn):not(#terminate-btn)').forEach(button => {
+                        button.disabled = false;
+                    });
+                    
+                    // Reset counters and textareas
+                    document.getElementById('found-count').value = '0';
+                    document.getElementById('mistake-count').value = '0';
+                    document.getElementById('found-groups').value = '';
+                    document.getElementById('invalid-groups').value = '';
+                } else {
+                    document.getElementById('puzzle-status-message').value = 'Error: ' + (data.message || 'Failed to set up puzzle');
+                }
+            } catch (error) {
+                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+            }
+        });
+
+        document.getElementById('next-recommendation').addEventListener('click', async () => {
+            console.log('Next recommendation button clicked');
+            const nextRecommendationBtn = document.getElementById('next-recommendation');
+            nextRecommendationBtn.disabled = true;
+            
+            document.getElementById('puzzle-status-message').value = 'Generating recommendation...';
+            
+            try {
+                const response = await fetch('/generate-next', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === "Next recommendation will be generated here" || 
+                    data.recommended_words) {
+                    document.getElementById('recommended-group').value = data.recommended_words.join(', ');
+                    document.getElementById('connection-reason').value = data.connection_reason || '';
+                    document.getElementById('active-recommender-message').value = data.active_recommender || 'Default Recommender';
+                    document.getElementById('puzzle-status-message').value = 'Recommendation generated';
+                } else {
+                    document.getElementById('puzzle-status-message').value = 'Error: ' + (data.message || 'Failed to generate recommendation');
+                    nextRecommendationBtn.disabled = false;
+                }
+            } catch (error) {
+                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                nextRecommendationBtn.disabled = false;
+            }
+        });
+
+        // Add click handlers for color and response buttons
+        document.querySelectorAll('.color-btn, .response-btn').forEach(button => {
+            button.addEventListener('click', async () => {
+                console.log('Button clicked:', button.textContent);
+                
+                // Disable the button if it's a color button (one-time use)
+                if (button.classList.contains('color-btn')) {
+                    button.disabled = true;
+                }
+                
+                document.getElementById('puzzle-status-message').value = 'Processing response...';
+                
+                try {
+                    const response = await fetch('/update-solution', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ user_response: button.getAttribute('response_code') })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Update status message based on button type
+                    if (button.classList.contains('color-btn')) {
+                        document.getElementById('puzzle-status-message').value = "Found group: " + button.textContent;
+                    } else if (button.classList.contains('response-btn')) {
+                        document.getElementById('puzzle-status-message').value = "Response: " + button.textContent;
+                    }
+                    
+                    // Update UI with response data
+                    document.getElementById('words-remaining').value = data.words_remaining.join(', ');
+                    document.getElementById('recommended-group').value = '';
+                    document.getElementById('connection-reason').value = '';
+                    document.getElementById('active-recommender-message').value = '';
+                    document.getElementById('found-count').value = data.found_count;
+                    document.getElementById('mistake-count').value = data.mistake_count;
+                    document.getElementById('found-groups').value = data.found_groups.join('\n');
+                    document.getElementById('invalid-groups').value = data.invalid_groups.join('\n');
+                    
+                    // Enable the next recommendation button
+                    document.getElementById('next-recommendation').disabled = false;
+                    
+                    // Check if game is over
+                    if (data.found_count == 4 || data.mistake_count == 4) {
+                        document.getElementById('terminate-btn').disabled = false;
+                        
+                        if (data.found_count == 4) {
+                            document.getElementById('puzzle-status-message').value = "🎉 Puzzle solved successfully!";
+                        } else {
+                            document.getElementById('puzzle-status-message').value = "❌ Puzzle failed - Too many mistakes";
+                        }
+                    }
+                } catch (error) {
+                    document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                }
+            });
+        });
+
+        document.getElementById('manual-override-btn').addEventListener('click', async () => {
+            console.log('Manual override button clicked');
+            
+            // Disable manual override button
+            document.getElementById('manual-override-btn').disabled = true;
+            
+            // Configure textareas for manual input
+            const groupTextarea = document.getElementById('recommended-group');
+            groupTextarea.placeholder = 'Enter comma separated words here...';
+            groupTextarea.removeAttribute('readonly');
+            groupTextarea.value = '';
+            groupTextarea.focus();
+            
+            const reasonTextarea = document.getElementById('connection-reason');
+            reasonTextarea.placeholder = 'Enter connection reason here...';
+            reasonTextarea.removeAttribute('readonly');
+            reasonTextarea.value = '';
+            
+            try {
+                const response = await fetch('/manual-override', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    document.getElementById('puzzle-status-message').value = "Manual override mode - Enter words and reason";
+                    document.getElementById('confirm-manual-override-btn').disabled = false;
+                } else {
+                    throw new Error(data.message || 'Failed to activate manual override');
+                }
+            } catch (error) {
+                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                document.getElementById('manual-override-btn').disabled = false;
+            }
+        });
+
+        document.getElementById('confirm-manual-override-btn').addEventListener('click', async () => {
+            console.log('Confirm manual override button clicked');
+            
+            // Get words from the recommended group textarea
+            const words = document.getElementById('recommended-group').value
+                .split(',')
+                .map(w => w.trim())
+                .filter(w => w);
+            
+            if (words.length !== 4) {
+                document.getElementById('puzzle-status-message').value = "Error: Please enter exactly 4 words";
+                return;
+            }
+            
+            try {
+                const response = await fetch('/confirm-manual-override', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ words: words })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    document.getElementById('puzzle-status-message').value = "Manual group confirmed";
+                    document.getElementById('active-recommender-message').value = "Manual Entry";
+                    document.getElementById('confirm-manual-override-btn').disabled = true;
+                    
+                    // Reset textareas to readonly
+                    const groupTextarea = document.getElementById('recommended-group');
+                    groupTextarea.setAttribute('readonly', 'readonly');
+                    groupTextarea.removeAttribute('placeholder');
+                    
+                    const reasonTextarea = document.getElementById('connection-reason');
+                    reasonTextarea.setAttribute('readonly', 'readonly');
+                    reasonTextarea.removeAttribute('placeholder');
+                } else {
+                    throw new Error(data.message || 'Failed to confirm manual override');
+                }
+                
+                document.getElementById('manual-override-btn').disabled = false;
+            } catch (error) {
+                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+            }
+        });
+
+        document.getElementById('terminate-btn').addEventListener('click', async () => {
+            console.log('Terminate button clicked');
+            
+            if (confirm('Are you sure you want to terminate the puzzle session?')) {
+                try {
+                    const response = await fetch('/terminate', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        window.close();
+                    } else {
+                        throw new Error('Failed to terminate session');
+                    }
+                } catch (error) {
+                    document.getElementById('puzzle-status-message').value = 'Error terminating: ' + error.message;
+                }
+            }
         });
     </script>
 </body>

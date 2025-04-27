@@ -8,3 +8,5 @@ langchain-openai
 langgraph
 langchain-xai
 langchain-google-genai 
+uvicorn
+fastapi
