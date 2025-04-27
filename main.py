@@ -11,8 +11,6 @@ import os
 import uuid
 import tempfile
 from dotenv import load_dotenv
-from rich import print as rich_print
-from rich.pretty import pprint as rich_pprint
 
 # Load environment variables from .env file
 load_dotenv()
@@ -194,8 +192,8 @@ async def main(puzzle_setup_function: callable = None, puzzle_response_function:
         print(f"Snapshot: {args.snapshot_fp}")
         logger.info(f"Snapshot: {args.snapshot_fp}")
 
-    rich_print(f"\n[bold green]FOUND SOLUTIONS[/bold green]")
-    rich_pprint(result)
+    print("\nFOUND SOLUTIONS")
+    pp.pprint(result)
 
 
 if __name__ == "__main__":
