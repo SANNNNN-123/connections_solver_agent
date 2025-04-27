@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+aiosqlite
+python-dotenv
+langchain-core
+langchain-openai
+langgraph
+langchain-xai
+langchain-google-genai 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connections Puzzle Solver</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Connections Puzzle Solver</h1>
+        <div id="puzzle-area">
+            <div id="puzzle-instructions">
+                <p>Enter your puzzle words below. Group them into sets of 4 that are connected by a common theme.</p>
+            </div>
+            <form id="puzzle-form">
+                <textarea id="puzzle-input" rows="6" placeholder="Enter puzzle words, one per line..."></textarea>
+                <button type="submit">Solve Puzzle</button>
+            </form>
+            <div id="solution-area" style="display:none;">
+                <h2>Solution</h2>
+                <div id="solution-output"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('puzzle-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('puzzle-input').value;
+            document.getElementById('solution-area').style.display = 'block';
+            document.getElementById('solution-output').innerText = 'Solving...';
+            // TODO: Connect to backend API
+            // Example fetch:
+            // const response = await fetch('/api/solve', { method: 'POST', body: JSON.stringify({ words: input.split('\n') }) });
+            // const data = await response.json();
+            // document.getElementById('solution-output').innerText = JSON.stringify(data, null, 2);
+            setTimeout(() => {
+                document.getElementById('solution-output').innerText = 'This is a placeholder. Backend integration needed.';
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 
