@@ -247,6 +247,9 @@
     </div>
     
     <script>
+        // Add base URL for API endpoints
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        
         document.getElementById('setup-btn').addEventListener('click', async () => {
             console.log('Setup button clicked');
             const puzzleFile = document.getElementById('puzzle-file').value;
@@ -257,7 +260,7 @@
             }
             
             try {
-                const response = await fetch('/setup-puzzle', {
+                const response = await fetch(`${API_BASE_URL}/setup-puzzle`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -301,7 +304,7 @@
             document.getElementById('puzzle-status-message').value = 'Generating recommendation...';
             
             try {
-                const response = await fetch('/generate-next', {
+                const response = await fetch(`${API_BASE_URL}/generate-next`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -343,7 +346,7 @@
                 document.getElementById('puzzle-status-message').value = 'Processing response...';
                 
                 try {
-                    const response = await fetch('/update-solution', {
+                    const response = await fetch(`${API_BASE_URL}/update-solution`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -412,7 +415,7 @@
             reasonTextarea.value = '';
             
             try {
-                const response = await fetch('/manual-override', {
+                const response = await fetch(`${API_BASE_URL}/manual-override`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -452,7 +455,7 @@
             }
             
             try {
-                const response = await fetch('/confirm-manual-override', {
+                const response = await fetch(`${API_BASE_URL}/confirm-manual-override`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -494,7 +497,7 @@
             
             if (confirm('Are you sure you want to terminate the puzzle session?')) {
                 try {
-                    const response = await fetch('/terminate', {
+                    const response = await fetch(`${API_BASE_URL}/terminate`, {
                         method: 'POST'
                     });
                     

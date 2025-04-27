@@ -12,13 +12,20 @@ import argparse
 
 import pandas as pd
 
-# Add the parent directory to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the parent directory to the Python path FIRST
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
-# Now import the modules from the parent directory
+# Import from the parent package
+from tools import llm_interface_registry, read_file_to_word_list, extract_words_from_image_file
 from workflow_manager import create_webui_workflow_graph
 from puzzle_solver import PuzzleState
-from tools import read_file_to_word_list, extract_words_from_image_file, llm_interface_registry
+
+# Import LLM interfaces
+import gemini_tools
+import openai_tools
+import grok_tools
 
 from langchain_core.runnables import RunnableConfig
 
@@ -26,6 +33,7 @@ from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 # Parse CLI arguments
 parser = argparse.ArgumentParser(description="Web App for NYT Connections Solver")
@@ -33,18 +41,27 @@ parser.add_argument(
     "--llm_interface",
     type=str,
     default="gemini",
-    help="Set the LLM interface to use (e.g., openai, other_llm), default is 'openai'",
+    choices=["gemini", "openai", "grok"],
+    help="Set the LLM interface to use (gemini, openai, or grok), default is 'gemini'",
+)
+parser.add_argument(
+    "--db_path",
+    type=str,
+    default="data/db/vocabulary.db",
+    help="Path to store the vocabulary database",
 )
 args = parser.parse_args()
 
 pp = pp.PrettyPrinter(indent=4)
 logger = logging.getLogger(__name__)
 
+# Ensure database directory exists
+os.makedirs(os.path.dirname(args.db_path), exist_ok=True)
 
 db_lock = asyncio.Lock()
 
 # read in workflow instructions
-with open("embedvec_workflow_specification.md", "r") as f:
+with open("webapp/embedvec_webui_workflow_specification.md", "r") as f:
     workflow_instructions = f.read()
 
 workflow_graph = create_webui_workflow_graph()
@@ -59,8 +76,13 @@ async def webui_puzzle_setup_function(puzzle_setup_fp: str, config: RunnableConf
         raise ValueError(f"Unsupported file type: {suffix}")
     return words
 
-# setup interace to LLM
-llm_interface = llm_interface_registry.get(args.llm_interface)()
+# setup interface to LLM
+selected_interface = llm_interface_registry.get(args.llm_interface)
+if selected_interface is None:
+    available_interfaces = list(llm_interface_registry._registry.keys())
+    raise ValueError(f"LLM interface '{args.llm_interface}' not found. Available interfaces: {available_interfaces}")
+
+llm_interface = selected_interface()
 
 # setup runtime config
 runtime_config = {
@@ -72,7 +94,20 @@ runtime_config = {
     "recursion_limit": 50,
 }
 
-app = FastAPI()
+app = FastAPI(
+    title="NYT Connections Solver API",
+    description="API for solving NYT Connections puzzles using LLMs",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000"],  
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],  
+    allow_headers=["Content-Type"], 
+)
 
 # Mount static files and templates
 templates = Jinja2Templates(directory="webapp")
@@ -90,58 +125,57 @@ async def setup_puzzle(request: Request):
     puzzle_setup_fp = data.get("setup")
     puzzle_words = await webui_puzzle_setup_function(puzzle_setup_fp, runtime_config)
 
-    with tempfile.NamedTemporaryFile(suffix=".db") as tmp_db:
-        initial_state = PuzzleState(
-            puzzle_status="initialized",
-            current_tool="setup_puzzle",
-            tool_status="initialized",
-            workflow_instructions=workflow_instructions,
-            llm_temperature=0.7,
-            vocabulary_db_fp=tmp_db.name,
-            recommendation_answer_status="",
-            recommendation_correct_groups=[],
-            found_count=0,
-            mistake_count=0,
-            recommendation_count=0,
-            llm_retry_count=0,
-            invalid_connections=[],
-            words_remaining=puzzle_words,
-        )
+    initial_state = PuzzleState(
+        puzzle_status="initialized",
+        current_tool="setup_puzzle",
+        tool_status="initialized",
+        workflow_instructions=workflow_instructions,
+        llm_temperature=0.7,
+        vocabulary_db_fp=args.db_path,  # Use the persistent database path
+        recommendation_answer_status="",
+        recommendation_correct_groups=[],
+        found_count=0,
+        mistake_count=0,
+        recommendation_count=0,
+        llm_retry_count=0,
+        invalid_connections=[],
+        words_remaining=puzzle_words,
+    )
 
-        print("\nGenerating vocabulary and embeddings for the words...this may take several seconds ")
-        vocabulary = await llm_interface.generate_vocabulary(puzzle_words)
-        rows = []
-        for word, definitions in vocabulary.items():
-            for definition in definitions:
-                rows.append({"word": word, "definition": definition})
-        df = pd.DataFrame(rows)
+    print("\nGenerating vocabulary and embeddings for the words...this may take several seconds ")
+    vocabulary = await llm_interface.generate_vocabulary(puzzle_words)
+    rows = []
+    for word, definitions in vocabulary.items():
+        for definition in definitions:
+            rows.append({"word": word, "definition": definition})
+    df = pd.DataFrame(rows)
 
-        print("\nGenerating embeddings for the definitions")
-        embeddings = llm_interface.generate_embeddings(df["definition"].tolist())
-        df["embedding"] = [json.dumps(v) for v in embeddings]
+    print("\nGenerating embeddings for the definitions")
+    embeddings = llm_interface.generate_embeddings(df["definition"].tolist())
+    df["embedding"] = [json.dumps(v) for v in embeddings]
 
-        print("\nStoring vocabulary and embeddings in external database")
-        async with aiosqlite.connect(tmp_db.name) as conn:
-            async with db_lock:
-                cursor = await conn.cursor()
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS vocabulary (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        word TEXT,
-                        definition TEXT,
-                        embedding TEXT
-                    )
-                    """
+    print("\nStoring vocabulary and embeddings in database")
+    async with aiosqlite.connect(args.db_path) as conn:  # Use the persistent database path
+        async with db_lock:
+            cursor = await conn.cursor()
+            await cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vocabulary (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    word TEXT,
+                    definition TEXT,
+                    embedding TEXT
                 )
-                await conn.executemany(
-                    "INSERT INTO vocabulary (word, definition, embedding) VALUES (?, ?, ?)",
-                    df.values.tolist(),
-                )
-                await conn.commit()
+                """
+            )
+            await conn.executemany(
+                "INSERT INTO vocabulary (word, definition, embedding) VALUES (?, ?, ?)",
+                df.values.tolist(),
+            )
+            await conn.commit()
 
-        async for chunk in workflow_graph.astream(initial_state, runtime_config, stream_mode="values"):
-            pass
+    async for chunk in workflow_graph.astream(initial_state, runtime_config, stream_mode="values"):
+        pass
 
     return JSONResponse({"status": "success in getting puzzle words", "puzzle_words": puzzle_words})
 
@@ -246,4 +280,4 @@ async def terminate(background_tasks: BackgroundTasks):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("webapp.entry_app_fastapi:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run("webapp.backend:app", host="127.0.0.1", port=8000, reload=True) 
