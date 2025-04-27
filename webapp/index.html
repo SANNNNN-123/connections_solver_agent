@@ -97,14 +97,14 @@
             cursor: not-allowed;
         }
         
-        .color-buttons, .response-buttons, .manual-override {
+        .color-buttons, .response-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 15px;
         }
         
-        .color-buttons h3, .response-buttons h3, .manual-override h3 {
+        .color-buttons h3, .response-buttons h3 {
             width: 100%;
         }
         
@@ -223,12 +223,6 @@
                 <h3>Puzzle Response</h3>
                 <button class="response-btn" response_code="o" disabled>One-away Error</button>
                 <button class="response-btn" response_code="n" disabled>Not Correct</button>
-            </div>
-            
-            <div class="manual-override">
-                <h3>Manual Controls</h3>
-                <button class="override-btn" id="manual-override-btn" disabled>Manual Override</button>
-                <button class="override-btn" id="confirm-manual-override-btn" disabled>Confirm Override</button>
                 <button class="response-btn" response_code="s" disabled>Switch Recommender</button> 
             </div>
         </section>
@@ -394,102 +388,6 @@
                     document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
                 }
             });
-        });
-
-        document.getElementById('manual-override-btn').addEventListener('click', async () => {
-            console.log('Manual override button clicked');
-            
-            // Disable manual override button
-            document.getElementById('manual-override-btn').disabled = true;
-            
-            // Configure textareas for manual input
-            const groupTextarea = document.getElementById('recommended-group');
-            groupTextarea.placeholder = 'Enter comma separated words here...';
-            groupTextarea.removeAttribute('readonly');
-            groupTextarea.value = '';
-            groupTextarea.focus();
-            
-            const reasonTextarea = document.getElementById('connection-reason');
-            reasonTextarea.placeholder = 'Enter connection reason here...';
-            reasonTextarea.removeAttribute('readonly');
-            reasonTextarea.value = '';
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/manual-override`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Server responded with status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === "success") {
-                    document.getElementById('puzzle-status-message').value = "Manual override mode - Enter words and reason";
-                    document.getElementById('confirm-manual-override-btn').disabled = false;
-                } else {
-                    throw new Error(data.message || 'Failed to activate manual override');
-                }
-            } catch (error) {
-                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
-                document.getElementById('manual-override-btn').disabled = false;
-            }
-        });
-
-        document.getElementById('confirm-manual-override-btn').addEventListener('click', async () => {
-            console.log('Confirm manual override button clicked');
-            
-            // Get words from the recommended group textarea
-            const words = document.getElementById('recommended-group').value
-                .split(',')
-                .map(w => w.trim())
-                .filter(w => w);
-            
-            if (words.length !== 4) {
-                document.getElementById('puzzle-status-message').value = "Error: Please enter exactly 4 words";
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/confirm-manual-override`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ words: words })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Server responded with status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === "success") {
-                    document.getElementById('puzzle-status-message').value = "Manual group confirmed";
-                    document.getElementById('active-recommender-message').value = "Manual Entry";
-                    document.getElementById('confirm-manual-override-btn').disabled = true;
-                    
-                    // Reset textareas to readonly
-                    const groupTextarea = document.getElementById('recommended-group');
-                    groupTextarea.setAttribute('readonly', 'readonly');
-                    groupTextarea.removeAttribute('placeholder');
-                    
-                    const reasonTextarea = document.getElementById('connection-reason');
-                    reasonTextarea.setAttribute('readonly', 'readonly');
-                    reasonTextarea.removeAttribute('placeholder');
-                } else {
-                    throw new Error(data.message || 'Failed to confirm manual override');
-                }
-                
-                document.getElementById('manual-override-btn').disabled = false;
-            } catch (error) {
-                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
-            }
         });
 
         document.getElementById('terminate-btn').addEventListener('click', async () => {
