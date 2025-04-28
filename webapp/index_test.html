@@ -6,10 +6,10 @@
     <title>NYT Connections Puzzle Solver</title>
     <style>
         :root {
-            --yellow-color: #f9d342;
-            --green-color: #78c2ad;
-            --blue-color: #6baed6;
-            --purple-color: #9d8ec7;
+            --yellow-color: #fae06e; 
+            --green-color: #9fc259;  
+            --blue-color: #b1c5f0;   
+            --purple-color: #b980c4; 
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
             --text-color: #333333;
@@ -212,21 +212,35 @@
         .color-btn.yellow { 
             background-color: var(--yellow-color); 
             color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         
         .color-btn.green { 
             background-color: var(--green-color); 
             color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         
         .color-btn.blue { 
             background-color: var(--blue-color); 
-            color: white;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         
         .color-btn.purple { 
             background-color: var(--purple-color); 
-            color: white;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Add styles for disabled color buttons */
+        .color-btn:disabled {
+            background-color: #d3d3d3 !important;
+            color: #666 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none !important;
+            box-shadow: none !important;
         }
         
         .response-btn {
@@ -234,16 +248,23 @@
             flex: 1;
         }
         
+        .response-btn:disabled {
+            background-color: #d3d3d3;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
         .status-container {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
             margin-top: 1.25rem;
         }
         
         .status-row {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
             flex: 1;
         }
@@ -251,6 +272,7 @@
         .status-row label {
             font-weight: 500;
             font-size: 0.95rem;
+            padding-top: 1rem;
         }
         
         .counter-container {
@@ -329,6 +351,37 @@
         .full-width {
             grid-column: 1 / -1;
         }
+
+        /* Loading animation styles */
+        .loading-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .loading-text {
+            color: #333;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading .loading-spinner {
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -351,11 +404,13 @@
                 <div class="status-row">
                     <label>Status:</label>
                     <div class="recommendation-content" id="puzzle-status-display">
-                        Status updates will appear here...
+                        <div class="loading-container">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Status updates will appear here...</div>
+                        </div>
                     </div>
                     <textarea id="puzzle-status-message" rows="1" style="display: none;"></textarea>
                 </div>
-                <button id="terminate-btn" class="terminate-btn" disabled>Terminate</button>
             </div>
         </div>
         
@@ -458,26 +513,56 @@
         // Add base URL for API endpoints
         const API_BASE_URL = 'http://127.0.0.1:8000';
         
+        // Add counter for color buttons
+        let colorButtonsPressed = 0;
+        
         // Helper function to update display elements
         function updateDisplayFromTextarea(textareaId, displayId) {
             const textarea = document.getElementById(textareaId);
             const display = document.getElementById(displayId);
             if (textarea && display) {
-                display.textContent = textarea.value;
+                if (displayId === 'puzzle-status-display') {
+                    display.querySelector('.loading-text').textContent = textarea.value;
+                } else {
+                    display.textContent = textarea.value;
+                }
+            }
+        }
+        
+        // Helper function to toggle loading state
+        function toggleLoading(isLoading) {
+            const statusDisplay = document.getElementById('puzzle-status-display');
+            if (isLoading) {
+                statusDisplay.classList.add('loading');
+            } else {
+                statusDisplay.classList.remove('loading');
             }
         }
         
         document.getElementById('setup-btn').addEventListener('click', async () => {
+            // Reset the color buttons counter
+            colorButtonsPressed = 0;
+            
             console.log('Setup button clicked');
             const puzzleFile = document.getElementById('puzzle-file').value;
+            const statusMessage = document.getElementById('puzzle-status-message');
+            const setupBtn = document.getElementById('setup-btn');
             
             if (!puzzleFile.trim()) {
-                document.getElementById('puzzle-status-message').value = 'Please enter a puzzle file path';
+                statusMessage.value = 'Please enter a puzzle file path';
                 updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 return;
             }
             
             try {
+                // Disable the setup button during loading
+                setupBtn.disabled = true;
+                toggleLoading(true);
+
+                // Show initial loading message
+                statusMessage.value = "Generating vocabulary and embeddings for the words... this may take several seconds";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+
                 const response = await fetch(`${API_BASE_URL}/setup-puzzle`, {
                     method: 'POST',
                     headers: {
@@ -490,14 +575,26 @@
                     throw new Error(`Server responded with status: ${response.status}`);
                 }
                 
+                // Update status with next loading message
+                statusMessage.value = "Generating embeddings for the definitions...";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Update status with final loading message
+                statusMessage.value = "Storing vocabulary and embeddings in external database...";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 const data = await response.json();
                 
                 if (data.status === "success in getting puzzle words") {
                     document.getElementById('words-remaining').value = data.puzzle_words.join(', ');
-                    document.getElementById('puzzle-status-message').value = "Puzzle loaded successfully";
+                    statusMessage.value = "Puzzle loaded successfully";
                     
-                    // Enable all buttons except setup-btn and terminate-btn
-                    document.querySelectorAll('button:not(#setup-btn):not(#terminate-btn)').forEach(button => {
+                    // Enable all buttons except setup-btn
+                    document.querySelectorAll('button:not(#setup-btn)').forEach(button => {
                         button.disabled = false;
                     });
                     
@@ -515,12 +612,16 @@
                     updateDisplayFromTextarea('found-groups', 'found-groups-display');
                     updateDisplayFromTextarea('invalid-groups', 'invalid-groups-display');
                 } else {
-                    document.getElementById('puzzle-status-message').value = 'Error: ' + (data.message || 'Failed to set up puzzle');
+                    statusMessage.value = 'Error: ' + (data.message || 'Failed to set up puzzle');
                     updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 }
             } catch (error) {
-                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                statusMessage.value = 'Error: ' + error.message;
                 updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+            } finally {
+                // Re-enable the setup button and hide loading animation
+                setupBtn.disabled = false;
+                toggleLoading(false);
             }
         });
 
@@ -573,10 +674,8 @@
             button.addEventListener('click', async () => {
                 console.log('Button clicked:', button.textContent);
                 
-                // Disable the button if it's a color button (one-time use)
-                if (button.classList.contains('color-btn')) {
-                    button.disabled = true;
-                }
+                // Only disable the clicked button temporarily during processing
+                button.disabled = true;
                 
                 document.getElementById('puzzle-status-message').value = 'Processing response...';
                 updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
@@ -598,9 +697,20 @@
                     
                     // Update status message based on button type
                     if (button.classList.contains('color-btn')) {
-                        document.getElementById('puzzle-status-message').value = "Found group: " + button.textContent;
+                        if (data.found_count > colorButtonsPressed) {
+                            // If found_count increased, this was a successful color match
+                            colorButtonsPressed = data.found_count;
+                            document.getElementById('puzzle-status-message').value = `Found group: ${button.textContent} (${colorButtonsPressed}/4 groups found)`;
+                            // Keep only this color button disabled
+                            button.disabled = true;
+                        } else {
+                            // If found_count didn't increase, this was not correct
+                            button.disabled = false;
+                        }
                     } else if (button.classList.contains('response-btn')) {
                         document.getElementById('puzzle-status-message').value = "Response: " + button.textContent;
+                        // Always re-enable response buttons
+                        button.disabled = false;
                     }
                     
                     // Update UI with response data
@@ -627,7 +737,10 @@
                     
                     // Check if game is over
                     if (data.found_count == 4 || data.mistake_count == 4) {
-                        document.getElementById('terminate-btn').disabled = false;
+                        // Disable all buttons when game is over
+                        document.querySelectorAll('.color-btn, .response-btn').forEach(btn => {
+                            btn.disabled = true;
+                        });
                         
                         if (data.found_count == 4) {
                             document.getElementById('puzzle-status-message').value = "🎉 Puzzle solved successfully!";
@@ -639,6 +752,8 @@
                 } catch (error) {
                     document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
                     updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                    // Re-enable the button in case of error
+                    button.disabled = false;
                 }
             });
         });
