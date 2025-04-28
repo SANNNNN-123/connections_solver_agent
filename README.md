@@ -60,8 +60,16 @@ You can run the Connection Solver AI Agent in two ways: via the terminal or usin
      ```
 
 2. **Run the main script:**
+   You can specify which LLM interface to use by setting the `--llm_interface` argument to `gemini`, `openai`, or `grok`:
    ```bash
-   python main.py
+   # For Gemini
+   python main.py --llm_interface gemini
+
+   # For OpenAI
+   python main.py --llm_interface openai
+
+   # For Grok
+   python main.py --llm_interface grok
    ```
 
 ---
@@ -79,8 +87,16 @@ You can run the Connection Solver AI Agent in two ways: via the terminal or usin
      ```
 
 2. **Start the backend server:**
+   You can specify which LLM interface to use by setting the `--llm_interface` argument to `gemini`, `openai`, or `grok`:
    ```bash
-   python webapp/backend.py
+   # For Gemini
+   python webapp/backend.py --llm_interface gemini
+
+   # For OpenAI
+   python webapp/backend.py --llm_interface openai
+
+   # For Grok
+   python webapp/backend.py --llm_interface grok
    ```
 
 3. **Access the application:**

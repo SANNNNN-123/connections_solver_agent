@@ -11,3 +11,4 @@ langchain-google-genai
 uvicorn
 fastapi
 jinja2
+python-dotenv
