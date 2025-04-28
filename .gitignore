@@ -152,3 +152,5 @@ local_models/
 !word_list*.txt
 
 data/db/vocabulary.db
+
+__pycache__/
