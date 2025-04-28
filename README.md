@@ -8,8 +8,8 @@ https://www.nytimes.com/games/connections
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd connection_solver/V2
+git clone "https://github.com/SANNNNN-123/connections_solver_agent.git"
+cd connection_solver_agent
 ```
 
 2. Create and activate a virtual environment:
@@ -24,8 +24,10 @@ source myenv/bin/activate
 ```
 
 3. Install the required dependencies:
+I usually used blazing fast UV module to install
 ```bash
-pip install -r requirements.txt
+pip install uv
+uv pip install -r requirements.txt
 ```
 
 ## Environment Variables
