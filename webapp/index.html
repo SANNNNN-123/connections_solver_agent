@@ -3,216 +3,521 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connection Puzzle Solver</title>
+    <title>NYT Connections Puzzle Solver</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --primary-color: #3a86ff;
-            --yellow-color: #ffbe0b;
-            --green-color: #38b000;
-            --blue-color: #3a86ff;
-            --purple-color: #8338ec;
-            --error-color: #e63946;
+            --yellow-color: #fae06e; 
+            --green-color: #9fc259;  
+            --blue-color: #b1c5f0;   
+            --purple-color: #b980c4; 
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
-            --text-color: #212529;
-            --border-radius: 8px;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --text-color: #333333;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --font-primary: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-primary);
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
-            padding: 20px;
+            padding: 2rem;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
         }
         
         h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
         }
         
-        section {
+        .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            body {
+                padding: 1rem;
+            }
+        }
+        
+        .card {
             background-color: var(--card-bg);
             border-radius: var(--border-radius);
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 1.5rem;
             box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
         
-        h3 {
-            margin-bottom: 10px;
-            color: var(--primary-color);
-            font-size: 1.2rem;
+        /* Add fixed height for cards in the grid layout */
+        .grid-layout .card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            margin-bottom: 0;
+        }
+        
+        .card-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #444;
         }
         
         .input-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
             align-items: center;
         }
         
         input, textarea, button {
-            padding: 10px;
-            border-radius: var(--border-radius);
-            border: 1px solid #ddd;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
             font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #aaa;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        input {
+            flex: 1;
         }
         
         textarea {
             width: 100%;
             resize: none;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            background-color: #f9f9f9;
+            min-height: 2.5rem;
+        }
+        
+        .words-display {
+            font-size: 1.1rem;
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            min-height: 4rem;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
         
         button {
             cursor: pointer;
-            background-color: var(--primary-color);
+            background-color: #333;
             color: white;
             border: none;
-            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 120px;
         }
         
         button:hover:not(:disabled) {
-            filter: brightness(1.1);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         
         button:disabled {
-            background-color: #cccccc;
+            background-color: #e0e0e0;
+            color: #999;
             cursor: not-allowed;
         }
         
-        .color-buttons, .response-buttons {
+        .color-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .response-buttons {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
         }
         
-        .color-buttons h3, .response-buttons h3 {
-            width: 100%;
-        }
-        
-        .color-btn.yellow { background-color: var(--yellow-color); }
-        .color-btn.green { background-color: var(--green-color); }
-        .color-btn.blue { background-color: var(--blue-color); }
-        .color-btn.purple { background-color: var(--purple-color); }
-        
-        .response-btn {
-            background-color: var(--error-color);
-        }
-        
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .status-row label {
-            font-weight: bold;
-            min-width: 100px;
-        }
-        
-        .controls-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .controls-row label {
-            margin-left: 15px;
-        }
-        
-        #found-count, #mistake-count {
-            width: 40px;
-            text-align: center;
-        }
-        
-        .terminate-btn {
-            background-color: var(--error-color);
-        }
-        
-        .override-btn {
-            background-color: #6c757d;
-        }
-        
-        @media (max-width: 768px) {
-            .input-group, .controls-row, .status-row {
+        @media (max-width: 640px) {
+            .color-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .response-buttons {
+                flex-direction: column;
+            }
+            
+            .status-container {
+                flex-direction: column;
+            }
+            
+            .status-row {
                 flex-direction: column;
                 align-items: flex-start;
             }
             
-            input, button {
-                width: 100%;
+            .status-row label {
+                margin-bottom: 0.5rem;
             }
+        }
+        
+        @media (max-width: 400px) {
+            .color-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .color-btn {
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .color-btn.yellow { 
+            background-color: var(--yellow-color); 
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .color-btn.green { 
+            background-color: var(--green-color); 
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .color-btn.blue { 
+            background-color: var(--blue-color); 
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .color-btn.purple { 
+            background-color: var(--purple-color); 
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Add styles for disabled color buttons */
+        .color-btn:disabled {
+            background-color: #d3d3d3 !important;
+            color: #666 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .response-btn {
+            background-color: #e74c3c;
+            flex: 1;
+        }
+        
+        .response-btn:disabled {
+            background-color: #d3d3d3;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .status-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        
+        .status-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            flex: 1;
+        }
+        
+        .status-row label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding-top: 1rem;
+        }
+        
+        .counter-container {
+            display: flex;
+            gap: 1.5rem;
+            margin: 1.25rem 0;
+        }
+        
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .counter label {
+            font-weight: 500;
+        }
+        
+        .counter-value {
+            background-color: #f5f5f5;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            min-width: 2.5rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .recommendation-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .recommendation-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .recommendation-content {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex: 1;
+        }
+        
+        .terminate-btn {
+            background-color: #e74c3c;
+        }
+        
+        .groups-container {
+            margin-top: 1rem;
+        }
+        
+        .group-list {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+            min-height: 8rem;
+        }
+        
+        .action-btn {
+            background-color: #333;
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Loading animation styles */
+        .loading-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .loading-text {
+            color: #333;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading .loading-spinner {
+            display: inline-block;
+        }
+
+        /* Add styles for suggested group text */
+        #recommended-group-display {
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Style for connection reasoning container */
+        #connection-reason-display {
+            max-height: 150px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f5f5f5;
+        }
+
+        /* Webkit scrollbar styles */
+        #connection-reason-display::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #connection-reason-display::-webkit-scrollbar-track {
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+
+        #connection-reason-display::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        #connection-reason-display::-webkit-scrollbar-thumb:hover {
+            background: #666;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Connection Puzzle Solver</h1>
+        <header>
+            <h1>NYT Connections Solver</h1>
+            <p class="subtitle">Find word connections and solve puzzles efficiently</p>
+        </header>
         
-        <section class="setup-section">
-            <h3>Setup Puzzle</h3>
+        <div class="card">
+            <div class="card-header">
+                <h2>Setup Puzzle</h2>
+            </div>
             <div class="input-group">
-                <label for="puzzle-file">Puzzle File:</label>
                 <input type="text" id="puzzle-file" placeholder="Enter puzzle file path">
                 <button id="setup-btn">Load Puzzle</button>
             </div>
-        </section>
-        
-        <section class="puzzle-section">
-            <h3>Puzzle Words</h3>
-            <textarea id="words-remaining" rows="2" placeholder="Words will appear here after setup..." readonly></textarea>
             
-            <div class="controls" id="get-next-group">
-                <div class="controls-row">
-                    <button id="next-recommendation" disabled>Get Next Recommendation</button>
-                    <label for="found-count">Found:</label>
-                    <textarea id="found-count" rows="1" cols="3"></textarea>
-                    <label for="mistake-count">Mistakes:</label>
-                    <textarea id="mistake-count" rows="1" cols="3"></textarea>
+            <div class="status-container">
+                <div class="status-row">
+                    <label>Status:</label>
+                    <div class="recommendation-content" id="puzzle-status-display">
+                        <div class="loading-container">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Status updates will appear here...</div>
+                        </div>
+                    </div>
+                    <textarea id="puzzle-status-message" rows="1" style="display: none;"></textarea>
                 </div>
             </div>
-            
-            <h3>Recommended Group</h3>
-            <textarea id="recommended-group" rows="1" placeholder="Recommended words will appear here..." readonly></textarea>
-            
-            <h3>Connection Reason</h3>
-            <textarea id="connection-reason" rows="2" placeholder="Connection explanation will appear here..." readonly></textarea>
-            
-            <div class="status-row">
-                <label for="puzzle-status-message">Status:</label>
-                <textarea id="puzzle-status-message" rows="1" placeholder="Status updates will appear here..." readonly></textarea>
-                <button id="terminate-btn" class="terminate-btn" disabled>Terminate</button>
-            </div>
-            
-            <div class="status-row">
-                <label for="active-recommender-message">Recommender:</label>
-                <textarea id="active-recommender-message" rows="1" placeholder="Current recommender..." readonly></textarea>
-            </div>
-        </section>
+        </div>
         
-        <section class="response-section">
+        <div class="grid-layout">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Puzzle Words</h2>
+                </div>
+                <div class="words-display" id="words-remaining-display">
+                    Words will appear here after setup...
+                </div>
+                <textarea id="words-remaining" rows="2" style="display: none;"></textarea>
+                
+                <div class="counter-container">
+                    <div class="counter">
+                        <label for="found-count">Found:</label>
+                        <div class="counter-value" id="found-count-display">0</div>
+                        <textarea id="found-count" rows="1" cols="3" style="display: none;">0</textarea>
+                    </div>
+                    <div class="counter">
+                        <label for="mistake-count">Mistakes:</label>
+                        <div class="counter-value" id="mistake-count-display">0</div>
+                        <textarea id="mistake-count" rows="1" cols="3" style="display: none;">0</textarea>
+                    </div>
+                </div>
+                
+                <button id="next-recommendation" class="action-btn" disabled>Get Next Recommendation</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recommendation</h2>
+                </div>
+                
+                <div class="recommendation-container">
+                    <div class="recommendation-header">
+                        <h3>Suggested Group</h3>
+                    </div>
+                    <div class="recommendation-content" id="recommended-group-display">
+                        
+                    </div>
+                    <textarea id="recommended-group" rows="1" style="display: none;"></textarea>
+                </div>
+                
+                <div class="recommendation-container">
+                    <div class="recommendation-header">
+                        <h3>Connection Reasoning:</h3>
+                    </div>
+                    <div class="recommendation-content" id="connection-reason-display">
+                        
+                    </div>
+                    <textarea id="connection-reason" rows="2" style="display: none;"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>Response</h2>
+            </div>
             <div class="color-buttons">
-                <h3>Correct Group Color</h3>
                 <button class="color-btn yellow" response_code="y" disabled>Yellow</button>
                 <button class="color-btn green" response_code="g" disabled>Green</button>
                 <button class="color-btn blue" response_code="b" disabled>Blue</button>
@@ -220,40 +525,122 @@
             </div>
             
             <div class="response-buttons">
-                <h3>Puzzle Response</h3>
                 <button class="response-btn" response_code="o" disabled>One-away Error</button>
                 <button class="response-btn" response_code="n" disabled>Not Correct</button>
-                <button class="response-btn" response_code="s" disabled>Switch Recommender</button> 
             </div>
-        </section>
+        </div>
         
-        <section class="result-section">
-            <div class="found-groups">
-                <h3>Correct Groups</h3>
-                <textarea id="found-groups" rows="4" placeholder="Correct groups will appear here..." readonly></textarea>
+        <div class="card">
+            <div class="card-header">
+                <h2>Results</h2>
             </div>
             
-            <div class="invalid-groups">
-                <h3>Invalid Groups</h3>
-                <textarea id="invalid-groups" rows="4" placeholder="Invalid groups will appear here..." readonly></textarea>
+            <div class="grid-layout">
+                <div class="groups-container">
+                    <h3>Correct Groups</h3>
+                    <div class="group-list" id="found-groups-display">
+                        Correct groups will appear here...
+                    </div>
+                    <textarea id="found-groups" rows="4" style="display: none;"></textarea>
+                </div>
+                
+                <div class="groups-container">
+                    <h3>Invalid Groups</h3>
+                    <div class="group-list" id="invalid-groups-display">
+                        Invalid groups will appear here...
+                    </div>
+                    <textarea id="invalid-groups" rows="4" style="display: none;"></textarea>
+                </div>
             </div>
-        </section>
+        </div>
     </div>
     
     <script>
         // Add base URL for API endpoints
         const API_BASE_URL = 'http://127.0.0.1:8000';
         
+        // Add counter for color buttons
+        let colorButtonsPressed = 0;
+        
+        // Helper function to update display elements
+        function updateDisplayFromTextarea(textareaId, displayId) {
+            const textarea = document.getElementById(textareaId);
+            const display = document.getElementById(displayId);
+            if (textarea && display) {
+                if (displayId === 'puzzle-status-display') {
+                    display.querySelector('.loading-text').textContent = textarea.value;
+                } else if (displayId === 'recommended-group-display') {
+                    // Convert suggested group text to uppercase
+                    display.textContent = textarea.value.toUpperCase();
+                } else {
+                    display.textContent = textarea.value;
+                }
+            }
+        }
+        
+        // Helper function to toggle loading state
+        function toggleLoading(isLoading) {
+            const statusDisplay = document.getElementById('puzzle-status-display');
+            if (isLoading) {
+                statusDisplay.classList.add('loading');
+            } else {
+                statusDisplay.classList.remove('loading');
+            }
+        }
+        
+        // Helper function to trigger confetti
+        function triggerConfetti() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#fae06e', '#9fc259', '#b1c5f0', '#b980c4']  // Using our game colors
+            });
+            
+            // Fire multiple bursts for a more dramatic effect
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    spread: 100,
+                    origin: { y: 0.6 },
+                    colors: ['#fae06e', '#9fc259', '#b1c5f0', '#b980c4']
+                });
+            }, 250);
+            
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    spread: 120,
+                    origin: { y: 0.6 },
+                    colors: ['#fae06e', '#9fc259', '#b1c5f0', '#b980c4']
+                });
+            }, 500);
+        }
+        
         document.getElementById('setup-btn').addEventListener('click', async () => {
+            // Reset the color buttons counter
+            colorButtonsPressed = 0;
+            
             console.log('Setup button clicked');
             const puzzleFile = document.getElementById('puzzle-file').value;
+            const statusMessage = document.getElementById('puzzle-status-message');
+            const setupBtn = document.getElementById('setup-btn');
             
             if (!puzzleFile.trim()) {
-                document.getElementById('puzzle-status-message').value = 'Please enter a puzzle file path';
+                statusMessage.value = 'Please enter a puzzle file path';
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 return;
             }
             
             try {
+                // Disable the setup button during loading
+                setupBtn.disabled = true;
+                toggleLoading(true);
+
+                // Show initial loading message
+                statusMessage.value = "Generating vocabulary and embeddings for the words... this may take several seconds";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+
                 const response = await fetch(`${API_BASE_URL}/setup-puzzle`, {
                     method: 'POST',
                     headers: {
@@ -266,14 +653,26 @@
                     throw new Error(`Server responded with status: ${response.status}`);
                 }
                 
+                // Update status with next loading message
+                statusMessage.value = "Generating embeddings for the definitions...";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Update status with final loading message
+                statusMessage.value = "Storing vocabulary and embeddings in external database...";
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 const data = await response.json();
                 
                 if (data.status === "success in getting puzzle words") {
                     document.getElementById('words-remaining').value = data.puzzle_words.join(', ');
-                    document.getElementById('puzzle-status-message').value = "Puzzle loaded successfully";
+                    statusMessage.value = "Puzzle loaded successfully";
                     
-                    // Enable all buttons except setup-btn and terminate-btn
-                    document.querySelectorAll('button:not(#setup-btn):not(#terminate-btn)').forEach(button => {
+                    // Enable all buttons except setup-btn
+                    document.querySelectorAll('button:not(#setup-btn)').forEach(button => {
                         button.disabled = false;
                     });
                     
@@ -282,11 +681,25 @@
                     document.getElementById('mistake-count').value = '0';
                     document.getElementById('found-groups').value = '';
                     document.getElementById('invalid-groups').value = '';
+                    
+                    // Update all display elements
+                    updateDisplayFromTextarea('words-remaining', 'words-remaining-display');
+                    updateDisplayFromTextarea('found-count', 'found-count-display');
+                    updateDisplayFromTextarea('mistake-count', 'mistake-count-display');
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                    updateDisplayFromTextarea('found-groups', 'found-groups-display');
+                    updateDisplayFromTextarea('invalid-groups', 'invalid-groups-display');
                 } else {
-                    document.getElementById('puzzle-status-message').value = 'Error: ' + (data.message || 'Failed to set up puzzle');
+                    statusMessage.value = 'Error: ' + (data.message || 'Failed to set up puzzle');
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 }
             } catch (error) {
-                document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                statusMessage.value = 'Error: ' + error.message;
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+            } finally {
+                // Re-enable the setup button and hide loading animation
+                setupBtn.disabled = false;
+                toggleLoading(false);
             }
         });
 
@@ -296,6 +709,7 @@
             nextRecommendationBtn.disabled = true;
             
             document.getElementById('puzzle-status-message').value = 'Generating recommendation...';
+            updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
             
             try {
                 const response = await fetch(`${API_BASE_URL}/generate-next`, {
@@ -315,14 +729,20 @@
                     data.recommended_words) {
                     document.getElementById('recommended-group').value = data.recommended_words.join(', ');
                     document.getElementById('connection-reason').value = data.connection_reason || '';
-                    document.getElementById('active-recommender-message').value = data.active_recommender || 'Default Recommender';
                     document.getElementById('puzzle-status-message').value = 'Recommendation generated';
+                    
+                    // Update display elements
+                    updateDisplayFromTextarea('recommended-group', 'recommended-group-display');
+                    updateDisplayFromTextarea('connection-reason', 'connection-reason-display');
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 } else {
                     document.getElementById('puzzle-status-message').value = 'Error: ' + (data.message || 'Failed to generate recommendation');
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                     nextRecommendationBtn.disabled = false;
                 }
             } catch (error) {
                 document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 nextRecommendationBtn.disabled = false;
             }
         });
@@ -332,12 +752,11 @@
             button.addEventListener('click', async () => {
                 console.log('Button clicked:', button.textContent);
                 
-                // Disable the button if it's a color button (one-time use)
-                if (button.classList.contains('color-btn')) {
-                    button.disabled = true;
-                }
+                // Only disable the clicked button temporarily during processing
+                button.disabled = true;
                 
                 document.getElementById('puzzle-status-message').value = 'Processing response...';
+                updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 
                 try {
                     const response = await fetch(`${API_BASE_URL}/update-solution`, {
@@ -356,36 +775,65 @@
                     
                     // Update status message based on button type
                     if (button.classList.contains('color-btn')) {
-                        document.getElementById('puzzle-status-message').value = "Found group: " + button.textContent;
+                        if (data.found_count > colorButtonsPressed) {
+                            // If found_count increased, this was a successful color match
+                            colorButtonsPressed = data.found_count;
+                            document.getElementById('puzzle-status-message').value = `Found group: ${button.textContent} (${colorButtonsPressed}/4 groups found)`;
+                            // Keep only this color button disabled
+                            button.disabled = true;
+                        } else {
+                            // If found_count didn't increase, this was not correct
+                            button.disabled = false;
+                        }
                     } else if (button.classList.contains('response-btn')) {
                         document.getElementById('puzzle-status-message').value = "Response: " + button.textContent;
+                        // Always re-enable response buttons
+                        button.disabled = false;
                     }
                     
                     // Update UI with response data
                     document.getElementById('words-remaining').value = data.words_remaining.join(', ');
                     document.getElementById('recommended-group').value = '';
                     document.getElementById('connection-reason').value = '';
-                    document.getElementById('active-recommender-message').value = '';
                     document.getElementById('found-count').value = data.found_count;
                     document.getElementById('mistake-count').value = data.mistake_count;
                     document.getElementById('found-groups').value = data.found_groups.join('\n');
                     document.getElementById('invalid-groups').value = data.invalid_groups.join('\n');
+                    
+                    // Update all display elements
+                    updateDisplayFromTextarea('words-remaining', 'words-remaining-display');
+                    updateDisplayFromTextarea('recommended-group', 'recommended-group-display');
+                    updateDisplayFromTextarea('connection-reason', 'connection-reason-display');
+                    updateDisplayFromTextarea('found-count', 'found-count-display');
+                    updateDisplayFromTextarea('mistake-count', 'mistake-count-display');
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                    updateDisplayFromTextarea('found-groups', 'found-groups-display');
+                    updateDisplayFromTextarea('invalid-groups', 'invalid-groups-display');
                     
                     // Enable the next recommendation button
                     document.getElementById('next-recommendation').disabled = false;
                     
                     // Check if game is over
                     if (data.found_count == 4 || data.mistake_count == 4) {
-                        document.getElementById('terminate-btn').disabled = false;
+                        // Disable all buttons when game is over
+                        document.querySelectorAll('.color-btn, .response-btn').forEach(btn => {
+                            btn.disabled = true;
+                        });
                         
                         if (data.found_count == 4) {
-                            document.getElementById('puzzle-status-message').value = "🎉 Puzzle solved successfully!";
+                            document.getElementById('puzzle-status-message').value = "🎉 Congratulations! You've solved the puzzle successfully!";
+                            // Trigger confetti animation
+                            triggerConfetti();
                         } else {
                             document.getElementById('puzzle-status-message').value = "❌ Puzzle failed - Too many mistakes";
                         }
+                        updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                     }
                 } catch (error) {
                     document.getElementById('puzzle-status-message').value = 'Error: ' + error.message;
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
+                    // Re-enable the button in case of error
+                    button.disabled = false;
                 }
             });
         });
@@ -406,9 +854,18 @@
                     }
                 } catch (error) {
                     document.getElementById('puzzle-status-message').value = 'Error terminating: ' + error.message;
+                    updateDisplayFromTextarea('puzzle-status-message', 'puzzle-status-display');
                 }
+            }
+        });
+        
+        // Initialize display elements
+        document.querySelectorAll('textarea').forEach(textarea => {
+            const displayId = textarea.id + '-display';
+            if (document.getElementById(displayId)) {
+                updateDisplayFromTextarea(textarea.id, displayId);
             }
         });
     </script>
 </body>
-</html> 
+</html>
