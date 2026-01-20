@@ -20,9 +20,9 @@ class LLMGeminiInterface(LLMInterfaceBase):
 
     def __init__(
         self,
-        word_analyzer_llm_name: str = "gemini-2.5-flash-preview-04-17",
-        image_extraction_llm_name: str = "gemini-2.5-pro-preview-03-25",
-        workflow_llm_name: str = "gemini-2.5-flash-preview-04-17",
+        word_analyzer_llm_name: str = "gemini-2.5-flash",
+        image_extraction_llm_name: str = "gemini-2.5-flash",
+        workflow_llm_name: str = "gemini-2.5-flash",
         embedding_model_name: str = "models/text-embedding-004",
         temperature: float = 0.9,
         max_tokens=4096,
