@@ -105,3 +105,65 @@ You can run the Connection Solver AI Agent in two ways: via the terminal or usin
    - **API Documentation:** Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser.
    - **Web Interface:** Open `webapp/index.html` directly in your browser.
 
+## How It Works
+
+The Connection Solver AI Agent uses an AI agent workflow pattern with LangGraph and LangChain to solve NYT Connections puzzles. Here's the complete workflow:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. INPUT: 16 words from NYT Connections puzzle          │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 2. GENERATE VOCABULARY: LLM creates multiple meanings   │
+│    per word (noun, verb, adjective, etc.)               │
+│    Example: "bank" → ["noun: financial institution",  │
+│                        "noun: river edge",              │
+│                        "verb: to deposit money"]        │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 3. GENERATE EMBEDDINGS: Create vector embeddings       │
+│    for each definition (not the word itself)            │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 4. STORE IN DATABASE: Save word, definition, embedding  │
+│    in SQLite database (vocabulary.db)                   │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 5. FIND GROUPS: Two strategies work in parallel:        │
+│                                                  │
+│    A. EmbedVec Recommender:                            │
+│       - Calculate cosine similarity between embeddings │
+│       - Find groups of 4 words with high similarity     │
+│       - LLM explains the connection                    │
+│                                                  │
+│    B. LLM Recommender:                                 │
+│       - Directly asks LLM to find related groups       │
+│       - Uses semantic understanding                    │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 6. LANGGRAPH ORCHESTRATION:                             │
+│    - Manages state (words remaining, mistakes, etc.)   │
+│    - Routes between recommenders                       │
+│    - Handles user feedback                             │
+│    - Adapts strategy based on results                   │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────┐
+│ 7. USER FEEDBACK: Accept/reject suggestions             │
+│    - If correct: Remove words, continue                 │
+│    - If wrong: Try different strategy                   │
+│    - Loop until puzzle solved or max mistakes           │
+└─────────────────────────────────────────────────────────┘
+```
+
